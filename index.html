@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Százalékgyakorló</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400;1,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --paper: #f1f7f1; --grid: #d3e6d5; --sheet: #fbfefb; --ink: #15301d; --ink-soft: #4a6852;
+  --pen: #1d7a3e; --pen-soft: #dcf0e1; --red: #c93434; --red-soft: #fbe4e4;
+  --ok: #0c7a7e; --ok-soft: #d8f1f1; --line: #b6d2bc;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-math: "STIX Two Text", "Cambria Math", "Times New Roman", serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0d1911; --grid: #17301e; --sheet: #13251a; --ink: #e3f2e7; --ink-soft: #9bbca5;
+    --pen: #6cd391; --pen-soft: #1c3e28; --red: #ff8a8a; --red-soft: #4a2230;
+    --ok: #62d2d6; --ok-soft: #123b3d; --line: #2a4a34; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; margin: 0; }
+body {
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1040px; margin: 0 auto; }
+.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between; margin-bottom: 20px; }
+.brand h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(1.7rem, 5vw, 2.4rem); line-height: 1.05; margin: 0; letter-spacing: -0.01em; }
+.brand h1 span { color: var(--pen); }
+.brand p { margin: 4px 0 0; color: var(--ink-soft); }
+.tally { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { background: var(--sheet); border: 1px solid var(--line); padding: 6px 12px; min-width: 104px; }
+.chip small { display: block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); }
+.chip b { font-family: var(--f-mono); font-weight: 500; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+
+.layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 820px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.topics { display: grid; gap: 8px; }
+.topic {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center;
+  text-align: left; width: 100%; font: inherit; color: inherit; cursor: pointer;
+  background: var(--sheet); border: 1px solid var(--line); padding: 10px 12px;
+}
+.topic:hover { border-color: var(--pen); }
+.topic:focus-visible, .lv:focus-visible, .btn:focus-visible, .key:focus-visible { outline: 3px solid var(--pen); outline-offset: 2px; }
+.topic[aria-pressed="true"] { border-color: var(--pen); background: var(--pen-soft); box-shadow: 3px 3px 0 var(--pen); }
+.topic .nm { font-weight: 600; }
+.topic .fm { grid-column: 1 / -1; font-family: var(--f-math); font-size: 1.05rem; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topic .sc { font-family: var(--f-mono); font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.topic.rand { border-style: dashed; }
+.topic.rand[aria-pressed="true"] { border-style: solid; }
+@media (max-width: 820px) { .topics { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); } }
+
+.work { display: grid; gap: 16px; min-width: 0; }
+.opts { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg > span { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); margin-right: 4px; }
+.lv { font: inherit; cursor: pointer; background: var(--sheet); color: var(--ink); border: 1px solid var(--line); padding: 5px 14px; }
+.lv[aria-checked="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+.sheet { background: var(--sheet); border: 1px solid var(--ink); box-shadow: 5px 5px 0 var(--line); padding: 22px clamp(14px, 4vw, 30px) 20px; min-width: 0; }
+.kind { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 6px; }
+.story { font-size: clamp(1.05rem, 3.4vw, 1.22rem); line-height: 1.65; margin: 0 0 14px; max-width: 64ch; }
+.story .nw { white-space: nowrap; }
+.story b { font-weight: 600; color: var(--pen); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.scroll { overflow-x: auto; }
+.rows { display: grid; grid-template-columns: max-content minmax(9em, 1fr); column-gap: 22px; row-gap: 4px; align-items: center;
+  font-family: var(--f-math); font-size: clamp(1.05rem, 4vw, 1.45rem); line-height: 2; }
+.rows:empty { display: none; }
+.rows .eq { white-space: nowrap; padding: 0 .3em; }
+.rows .eq.cur { background: var(--pen-soft); box-shadow: inset 3px 0 0 var(--pen); }
+.rows .eq.auto, .rows .nt.auto { color: var(--ink-soft); }
+.rows .eq.fin { font-weight: 600; color: var(--ok); }
+.rows .nt { font-family: var(--f-body); font-style: italic; font-size: .8rem; line-height: 1.35; color: var(--ink-soft); }
+@media (max-width: 640px) {
+  .rows { grid-template-columns: max-content; row-gap: 0; }
+  .rows .nt { padding: 0 .3em 6px; }
+  .rows .nt:empty { display: none; }
+}
+
+.opbox { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--paper); display: grid; gap: 10px; }
+.opbox label, .opbox .lbl { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.mline { font-family: var(--f-math); font-size: clamp(1.15rem, 4.4vw, 1.5rem); line-height: 2.2; }
+.mline .unk { color: var(--ink-soft); }
+.unit { font-family: var(--f-body); font-size: .72em; color: var(--ink-soft); margin-left: .3em; }
+.slot {
+  font-family: var(--f-mono); font-size: .85em; color: var(--pen); text-align: center;
+  width: 6.6em; height: 1.55em; padding: 0 .2em;
+  background: var(--sheet); border: 1px solid var(--line); border-bottom: 2px solid var(--pen); border-radius: 0;
+}
+.slot:focus { outline: 2px solid var(--pen); outline-offset: 1px; }
+.slot.ok { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.slot.bad { background: var(--red-soft); border-color: var(--red); color: var(--red); }
+.slot.shown { background: transparent; border-color: var(--ink-soft); color: var(--ink); }
+.keys { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.key { font-family: var(--f-math); font-size: 1.1rem; min-width: 40px; height: 38px; padding: 0 10px; cursor: pointer; background: var(--sheet); color: var(--ink); border: 1px solid var(--line); }
+.key:hover { border-color: var(--pen); }
+.key[aria-pressed="true"] { background: var(--pen); color: var(--paper); border-color: var(--pen); }
+.key.txt { font-family: var(--f-body); font-size: .95rem; font-weight: 500; }
+.key.txt i { font-family: var(--f-math); font-size: 1.1em; margin-left: .25em; }
+.tip { font-size: 13px; color: var(--ink-soft); margin: 0; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.btn { font: inherit; font-weight: 600; cursor: pointer; padding: 9px 18px; border: 1px solid var(--ink); background: var(--sheet); color: var(--ink); }
+.btn.primary { background: var(--pen); border-color: var(--pen); color: var(--paper); }
+.btn.sm { padding: 6px 12px; font-weight: 500; }
+.btn:hover { filter: brightness(1.06); }
+.fb { margin-top: 14px; min-height: 1.5em; font-weight: 600; }
+.fb.ok { color: var(--ok); }
+.fb.bad { color: var(--red); }
+.fb.info { color: var(--ink-soft); font-weight: 500; }
+.fb .m { font-family: var(--f-math); font-size: 1.1em; color: var(--pen); }
+.answer { margin-top: 10px; padding: 10px 14px; border-left: 4px solid var(--ok); background: var(--ok-soft); font-size: 1.05rem; }
+.answer b { font-weight: 600; }
+
+.solution { margin-top: 12px; padding: 10px 14px; background: var(--paper); border: 1px dashed var(--line); }
+.solution h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); font-weight: 500; }
+
+.rule { background: var(--sheet); border: 1px solid var(--line); padding: 14px 18px; min-width: 0; }
+.rule h2 { margin: 0 0 6px; font-family: var(--f-display); font-size: 1.05rem; font-weight: 700; }
+.rule .big { font-family: var(--f-math); font-size: clamp(1.1rem, 4.2vw, 1.5rem); color: var(--pen); overflow-x: auto; white-space: nowrap; line-height: 2; }
+.rule p { margin: 6px 0 0; color: var(--ink-soft); max-width: 64ch; }
+.rule.locked .big { filter: blur(6px); user-select: none; }
+.terms { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; margin: 10px 0 0; font-size: 14px; }
+.terms dt { font-weight: 600; }
+.terms dt i { font-family: var(--f-math); font-size: 1.1em; color: var(--pen); }
+.terms dd { margin: 0; color: var(--ink-soft); }
+.foot { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-top: 4px; color: var(--ink-soft); font-size: 13px; }
+.linkbtn { font: inherit; background: none; border: 0; color: var(--ink-soft); text-decoration: underline; cursor: pointer; padding: 4px 0; }
+.linkbtn.warn { color: var(--red); }
+@media (prefers-reduced-motion: no-preference) { .topic, .btn, .key { transition: border-color .12s, box-shadow .12s, filter .12s, background-color .12s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Százalék<span>gyakorló</span></h1>
+      <p>Százalékalap, százalékérték és százalékláb kiszámítása szöveges feladatokban.</p>
+    </div>
+    <div class="tally" aria-label="Összesítés">
+      <div class="chip"><small>Sorozat</small><b id="tStreak">0</b></div>
+      <div class="chip"><small>Hibátlan</small><b id="tTotal">0 / 0</b></div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="topics" id="topics" aria-label="Mit számolunk?"></nav>
+
+    <section class="work">
+      <div class="opts">
+        <div class="seg" role="radiogroup" aria-label="Nehézség" id="levels"><span>Nehézség</span></div>
+        <div class="seg" role="radiogroup" aria-label="Mód" id="modes"><span>Mód</span></div>
+      </div>
+
+      <article class="sheet" aria-labelledby="qKind">
+        <p class="kind" id="qKind"></p>
+        <p class="story" id="story"></p>
+
+        <!-- Lépésenkénti mód -->
+        <div id="step">
+          <div class="scroll"><div class="rows" id="rows"></div></div>
+          <div class="opbox" id="panel"></div>
+        </div>
+
+        <!-- Csak eredmény mód -->
+        <div id="quick" hidden>
+          <div class="opbox">
+            <span class="lbl" id="qLbl"></span>
+            <div class="mline"><span id="qSym"></span> = <input class="slot" id="qX" type="text" inputmode="decimal" autocomplete="off" aria-label="eredmény"><span class="unit" id="qUnit"></span></div>
+          </div>
+        </div>
+
+        <div class="keys" id="helpKeys" aria-label="Jelek beírása" style="margin-top:10px">
+          <button type="button" class="key" data-k=",">,</button>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="bCheckQ" type="button" hidden>Ellenőrzés</button>
+          <button class="btn" id="bHint" type="button">Segítség</button>
+          <button class="btn" id="bReveal" type="button" hidden>Megoldás megmutatása</button>
+          <button class="btn primary" id="bNext" type="button" hidden>Következő feladat</button>
+        </div>
+        <div class="fb" id="fb" role="status" aria-live="polite"></div>
+        <div class="answer" id="answer" hidden></div>
+        <div class="solution" id="sol" hidden>
+          <h3>Levezetés</h3>
+          <div class="scroll"><div class="rows" id="solRows"></div></div>
+        </div>
+      </article>
+
+      <aside class="rule" id="rule" aria-label="Szabály">
+        <h2 id="ruleTitle"></h2>
+        <div class="big" id="ruleBig"></div>
+        <p id="ruleText"></p>
+        <dl class="terms">
+          <dt>százalékalap <i>A</i></dt><dd>az egész, amihez viszonyítunk – ez a 100%</dd>
+          <dt>százalékérték <i>É</i></dt><dd>az alapnak az a része, amelyről a feladat szól</dd>
+          <dt>százalékláb <i>p</i></dt><dd>megmutatja, hány százaléka az érték az alapnak</dd>
+        </dl>
+      </aside>
+
+      <div class="foot">
+        <span>A haladás ezen az eszközön, a böngészőben marad meg.</span>
+        <button class="linkbtn" id="bReset" type="button">Eredmények törlése</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ===== MOTOR: pontos tizedes számok, szöveges feladatok, lépések ===== */
+// ENGINE START
+const r = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const pick = a => a[r(0, a.length - 1)];
+
+/* Pontos tizedes szám: n · 10^(−s), n BigInt */
+function D(n, s = 0) {
+  n = BigInt(n);
+  while (s > 0 && n % 10n === 0n) { n /= 10n; s--; }
+  while (s < 0) { n *= 10n; s++; }
+  if (n === 0n) s = 0;
+  return { n, s };
+}
+const p10 = k => 10n ** BigInt(k);
+const dmul = (a, b) => D(a.n * b.n, a.s + b.s);
+const dadd = (a, b) => { const s = Math.max(a.s, b.s); return D(a.n * p10(s - a.s) + b.n * p10(s - b.s), s); };
+const dsub = (a, b) => dadd(a, D(-b.n, b.s));
+function ddiv(a, b) {
+  let num = a.n * p10(b.s), den = b.n * p10(a.s);
+  if (den === 0n) return null;
+  if (den < 0n) { num = -num; den = -den; }
+  for (let k = 0; k <= 30; k++) { const x = num * p10(k); if (x % den === 0n) return D(x / den, k); }
+  return null;
+}
+const deq = (a, b) => !!a && !!b && a.n === b.n && a.s === b.s;
+const hund = a => D(a.n, a.s + 2);            // a : 100
+const times100 = a => D(a.n, a.s - 2);        // a · 100
+const pct = (a, p) => hund(dmul(a, p));       // a · p : 100
+const H = D(100);
+function dstr(a, group) {
+  const neg = a.n < 0n;
+  let dg = (neg ? -a.n : a.n).toString();
+  if (a.s > 0 && dg.length <= a.s) dg = '0'.repeat(a.s - dg.length + 1) + dg;
+  let ip = a.s ? dg.slice(0, -a.s) : dg, fp = a.s ? dg.slice(-a.s) : '';
+  if (group && ip.length >= 5) ip = ip.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return (neg ? '−' : '') + ip + (fp ? ',' + fp : '');
+}
+function dparse(str) {
+  let s = String(str).trim().replace(/[−–—]/g, '-').replace(/[a-zA-ZáéíóöőúüűÁÉÍÓÖŐÚÜŰ%].*$/, '').replace(/\s+/g, '');
+  if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');   // 12.000 = tizenkétezer
+  s = s.replace(',', '.');
+  const m = s.match(/^([+-]?)(\d*)(?:\.(\d*))?$/);
+  if (!m || (!m[2] && !m[3])) return null;
+  const fp = m[3] || '';
+  return D(BigInt((m[1] === '-' ? '-' : '') + (m[2] || '0') + fp), fp.length);
+}
+
+/* ===== Szöveges feladatok =====
+   Alapfeladatok: t.E(f) – a százalékértéket kérdezi, t.A(f) – az alapot, t.P(f) – a lábat.
+   f.A, f.E, f.p: a kiemelt (félkövér) számok. a: [legkisebb, legnagyobb, lépésköz] az alaphoz.
+   int: a százalékérték is egész legyen (fő, darab, forint). pr: a százalékláb tartománya, ps: rögzített értékek. */
+const SC = [
+  { id: 'bicikli', unit: 'fő', int: true, a: [200, 1500, 10], rA: 'az iskola összes tanulója', rE: 'a kerékpárral járók száma',
+    t: { E: f => `Egy iskolába ${f.A} tanuló jár. A tanulók ${f.p}-a kerékpárral jár iskolába. Hány tanuló jár kerékpárral?`,
+         A: f => `Egy iskola tanulóinak ${f.p}-a, vagyis ${f.E} tanuló kerékpárral jár iskolába. Hány tanulója van az iskolának?`,
+         P: f => `Egy iskolába ${f.A} tanuló jár, közülük ${f.E} kerékpárral jár iskolába. A tanulók hány százaléka jár kerékpárral?` },
+    say: { E: v => `${v} tanuló jár kerékpárral.`, A: v => `Az iskolának ${v} tanulója van.`, P: v => `A tanulók ${v}%-a jár kerékpárral.` } },
+  { id: 'cipo', unit: 'Ft', int: true, a: [4000, 40000, 100], rA: 'a cipő ára', rE: 'a kedvezmény összege',
+    t: { E: f => `Egy ${f.A} Ft-os sportcipő árából ${f.p} kedvezményt adnak. Hány forint a kedvezmény?`,
+         A: f => `Egy sportcipő árából ${f.p} kedvezményt adnak, ez ${f.E} Ft. Mennyi a cipő eredeti ára?`,
+         P: f => `Egy ${f.A} Ft-os sportcipő árából ${f.E} Ft kedvezményt adnak. Hány százalékos a kedvezmény?` },
+    say: { E: v => `A kedvezmény ${v} Ft.`, A: v => `A cipő eredeti ára ${v} Ft.`, P: v => `A kedvezmény ${v}%-os.` } },
+  { id: 'zsebpenz', unit: 'Ft', int: true, a: [2000, 20000, 100], rA: 'a havi zsebpénz', rE: 'a félretett összeg',
+    t: { E: f => `Lili havi zsebpénze ${f.A} Ft. Ennek ${f.p}-át minden hónapban félreteszi. Hány forintot tesz félre havonta?`,
+         A: f => `Lili minden hónapban ${f.E} Ft-ot tesz félre, ez a zsebpénze ${f.p}-a. Mennyi Lili havi zsebpénze?`,
+         P: f => `Lili havi zsebpénze ${f.A} Ft, ebből ${f.E} Ft-ot félretesz. A zsebpénze hány százalékát teszi félre?` },
+    say: { E: v => `Havonta ${v} Ft-ot tesz félre.`, A: v => `Lili havi zsebpénze ${v} Ft.`, P: v => `A zsebpénze ${v}%-át teszi félre.` } },
+  { id: 'dolgozat', unit: 'pont', int: true, a: [20, 120, 4], pr: [20, 99], rA: 'a maximális pontszám', rE: 'Marci pontszáma',
+    t: { E: f => `A matekdolgozatban ${f.A} pontot lehetett elérni. Marci a pontok ${f.p}-át szerezte meg. Hány pontot ért el?`,
+         A: f => `Marci a matekdolgozatban ${f.E} pontot ért el, ez a maximális pontszám ${f.p}-a. Hány pontos volt a dolgozat?`,
+         P: f => `A matekdolgozatban ${f.A} pontot lehetett elérni, Marci ${f.E} pontot szerzett. Hány százalékos lett a dolgozata?` },
+    say: { E: v => `Marci ${v} pontot ért el.`, A: v => `A dolgozat ${v} pontos volt.`, P: v => `Marci dolgozata ${v}%-os lett.` } },
+  { id: 'szavazas', unit: 'szavazat', int: true, a: [100, 900, 10], pr: [5, 70], rA: 'az összes szavazat', rE: 'Réka szavazatai',
+    t: { E: f => `A diákönkormányzati választáson ${f.A} diák szavazott. Réka a szavazatok ${f.p}-át kapta. Hány szavazatot kapott Réka?`,
+         A: f => `A diákönkormányzati választáson Réka ${f.E} szavazatot kapott, ez az összes szavazat ${f.p}-a. Hány diák szavazott?`,
+         P: f => `A diákönkormányzati választáson ${f.A} diák szavazott, közülük ${f.E} Rékára. A szavazatok hány százalékát kapta Réka?` },
+    say: { E: v => `Réka ${v} szavazatot kapott.`, A: v => `${v} diák szavazott.`, P: v => `Réka a szavazatok ${v}%-át kapta.` } },
+  { id: 'dinnye', unit: 'kg', int: false, a: [2, 12, 0.5], pr: [88, 96], rA: 'a dinnye tömege', rE: 'a víz tömege',
+    t: { E: f => `A görögdinnye tömegének ${f.p}-a víz. Hány kilogramm víz van egy ${f.A} kg-os dinnyében?`,
+         A: f => `Egy görögdinnyében ${f.E} kg víz van, ez a dinnye tömegének ${f.p}-a. Hány kilogrammos a dinnye?`,
+         P: f => `Egy ${f.A} kg-os görögdinnyében ${f.E} kg víz van. A dinnye tömegének hány százaléka víz?` },
+    say: { E: v => `A dinnyében ${v} kg víz van.`, A: v => `A dinnye ${v} kg-os.`, P: v => `A dinnye tömegének ${v}%-a víz.` } },
+  { id: 'letoltes', unit: 'MB', int: false, a: [200, 4000, 10], rA: 'a játék mérete', rE: 'a már letöltött rész',
+    t: { E: f => `Egy ${f.A} MB-os játék letöltése ${f.p}-nál tart. Hány MB töltődött le eddig?`,
+         A: f => `Egy játék letöltése ${f.p}-nál tart, eddig ${f.E} MB töltődött le. Hány MB-os a játék?`,
+         P: f => `Egy ${f.A} MB-os játékból eddig ${f.E} MB töltődött le. Hány százaléknál tart a letöltés?` },
+    say: { E: v => `Eddig ${v} MB töltődött le.`, A: v => `A játék ${v} MB-os.`, P: v => `A letöltés ${v}%-nál tart.` } },
+  { id: 'tura', unit: 'km', int: false, a: [8, 40, 0.5], rA: 'a teljes útvonal hossza', rE: 'a megtett út',
+    t: { E: f => `Egy ${f.A} km-es túraútvonal ${f.p}-át már megtettük. Hány kilométert gyalogoltunk eddig?`,
+         A: f => `Eddig ${f.E} km-t gyalogoltunk, ez a túraútvonal ${f.p}-a. Milyen hosszú a teljes útvonal?`,
+         P: f => `Egy ${f.A} km-es túraútvonalból eddig ${f.E} km-t tettünk meg. Az útvonal hány százalékát jártuk be?` },
+    say: { E: v => `Eddig ${v} km-t gyalogoltunk.`, A: v => `A teljes útvonal ${v} km hosszú.`, P: v => `Az útvonal ${v}%-át jártuk be.` } },
+  { id: 'kamat', unit: 'Ft', int: true, a: [50000, 2000000, 10000], pr: [1, 12], rA: 'a betett pénz', rE: 'az egy év alatt kapott kamat',
+    t: { E: f => `Egy bank évi ${f.p} kamatot fizet. Mennyi kamatot kapunk egy év alatt ${f.A} Ft betét után?`,
+         A: f => `Egy bank évi ${f.p} kamatot fizet. Mennyi pénzt tettünk be, ha egy év alatt ${f.E} Ft kamatot kaptunk?`,
+         P: f => `Egy bankban ${f.A} Ft betét után egy év alatt ${f.E} Ft kamatot kaptunk. Hány százalékos az éves kamat?` },
+    say: { E: v => `Egy év alatt ${v} Ft kamatot kapunk.`, A: v => `${v} Ft-ot tettünk be.`, P: v => `Az éves kamat ${v}%-os.` } },
+  { id: 'afa', unit: 'Ft', int: true, a: [20000, 400000, 100], ps: [5, 18, 27], rA: 'a nettó ár (ÁFA nélkül)', rE: 'az ÁFA összege',
+    t: { E: f => `Egy kerékpár nettó ára ${f.A} Ft, erre ${f.p} ÁFA jön. Hány forint az ÁFA?`,
+         A: f => `Egy kerékpár árában az ÁFA ${f.E} Ft, az ÁFA mértéke a nettó ár ${f.p}-a. Mennyi a kerékpár nettó ára?`,
+         P: f => `Egy kerékpár nettó ára ${f.A} Ft, az ÁFA ${f.E} Ft. Hány százalékos az ÁFA?` },
+    say: { E: v => `Az ÁFA ${v} Ft.`, A: v => `A kerékpár nettó ára ${v} Ft.`, P: v => `Az ÁFA ${v}%-os.` } },
+  { id: 'falu', unit: 'fő', int: true, a: [800, 6000, 10], pr: [10, 40], rA: 'a falu összes lakosa', rE: 'a 18 év alattiak száma',
+    t: { E: f => `Egy falunak ${f.A} lakosa van. A lakosok ${f.p}-a 18 évesnél fiatalabb. Hány 18 év alatti lakosa van a falunak?`,
+         A: f => `Egy falu lakosainak ${f.p}-a, összesen ${f.E} fő 18 évesnél fiatalabb. Hány lakosa van a falunak?`,
+         P: f => `Egy falunak ${f.A} lakosa van, közülük ${f.E} fő 18 évesnél fiatalabb. A lakosok hány százaléka 18 év alatti?` },
+    say: { E: v => `A falunak ${v} 18 év alatti lakosa van.`, A: v => `A falunak ${v} lakosa van.`, P: v => `A lakosok ${v}%-a 18 év alatti.` } },
+  { id: 'csoki', unit: 'g', int: false, a: [50, 300, 10], pr: [30, 90], rA: 'a csokoládé tömege', rE: 'a kakaó tömege',
+    t: { E: f => `Egy ${f.A} g-os étcsokoládé ${f.p}-a kakaó. Hány gramm kakaó van benne?`,
+         A: f => `Egy étcsokoládéban ${f.E} g kakaó van, ez a tömegének ${f.p}-a. Hány grammos a csokoládé?`,
+         P: f => `Egy ${f.A} g-os étcsokoládéban ${f.E} g kakaó van. Hány százalékos a csokoládé kakaótartalma?` },
+    say: { E: v => `A csokoládéban ${v} g kakaó van.`, A: v => `A csokoládé ${v} g-os.`, P: v => `A csokoládé kakaótartalma ${v}%-os.` } },
+  { id: 'konyv', unit: 'oldal', int: true, a: [120, 600, 4], rA: 'a könyv összes oldala', rE: 'az elolvasott oldalak',
+    t: { E: f => `Egy ${f.A} oldalas könyvnek már ${f.p}-át elolvastam. Hány oldalt olvastam el?`,
+         A: f => `Már ${f.E} oldalt elolvastam egy könyvből, ez a könyv ${f.p}-a. Hány oldalas a könyv?`,
+         P: f => `Egy ${f.A} oldalas könyvből ${f.E} oldalt olvastam el. A könyv hány százalékát olvastam el?` },
+    say: { E: v => `${v} oldalt olvastam el.`, A: v => `A könyv ${v} oldalas.`, P: v => `A könyv ${v}%-át olvastam el.` } },
+  { id: 'kosar', unit: 'dobás', int: true, a: [10, 80, 1], pr: [40, 95], rA: 'az összes büntetődobás', rE: 'a sikeres dobások',
+    t: { E: f => `Dóra a szezonban ${f.A} büntetődobást végzett el, ezek ${f.p}-a sikerült. Hány büntetődobást értékesített?`,
+         A: f => `Dóra a szezonban ${f.E} büntetődobást értékesített, ez az összes büntetődobása ${f.p}-a. Hány büntetődobást végzett el?`,
+         P: f => `Dóra a szezonban ${f.A} büntetődobásból ${f.E} dobást értékesített. A dobásai hány százaléka volt sikeres?` },
+    say: { E: v => `Dóra ${v} büntetődobást értékesített.`, A: v => `Dóra ${v} büntetődobást végzett el.`, P: v => `A dobásai ${v}%-a volt sikeres.` } }
+];
+
+/* Változásos feladatok (nehéz szint): sign = +1 növekedés, −1 csökkenés.
+   t.E(f): az új értéket kérdezi (f.O, f.p), t.A(f): az eredetit (f.N, f.p), t.P(f): a változás százalékát (f.O, f.N). */
+const CH = [
+  { id: 'kabat', sign: -1, unit: 'Ft', int: true, a: [8000, 60000, 100], pr: [10, 60], rA: 'a kabát eredeti ára', rN: 'az új ár', rD: 'az árcsökkenés',
+    t: { E: f => `Egy ${f.O} Ft-os kabát árát ${f.p}-kal csökkentették. Mennyi lett a kabát új ára?`,
+         A: f => `Egy kabátot ${f.p}-os árengedmény után ${f.N} Ft-ért árulnak. Mennyi volt a kabát eredeti ára?`,
+         P: f => `Egy kabát ára ${f.O} Ft-ról ${f.N} Ft-ra csökkent. Hány százalékos volt az árengedmény?` },
+    say: { E: v => `A kabát új ára ${v} Ft.`, A: v => `A kabát eredeti ára ${v} Ft volt.`, P: v => `Az árengedmény ${v}%-os volt.` } },
+  { id: 'berlet', sign: 1, unit: 'Ft', int: true, a: [3000, 20000, 50], pr: [3, 30], rA: 'a bérlet régi ára', rN: 'a bérlet új ára', rD: 'az áremelés összege',
+    t: { E: f => `A havi buszbérlet ${f.O} Ft-ba került, idén ${f.p}-kal drágult. Mennyibe kerül most a bérlet?`,
+         A: f => `A havi buszbérlet ára ${f.p}-os áremelés után ${f.N} Ft. Mennyibe került az áremelés előtt?`,
+         P: f => `A havi buszbérlet ára ${f.O} Ft-ról ${f.N} Ft-ra nőtt. Hány százalékos volt az áremelés?` },
+    say: { E: v => `A bérlet most ${v} Ft-ba kerül.`, A: v => `Az áremelés előtt ${v} Ft-ba került.`, P: v => `Az áremelés ${v}%-os volt.` } },
+  { id: 'fizetes', sign: 1, unit: 'Ft', int: true, a: [200000, 900000, 1000], pr: [2, 20], rA: 'a régi fizetés', rN: 'az új fizetés', rD: 'az emelés összege',
+    t: { E: f => `Anya havi fizetése ${f.O} Ft volt, ezt ${f.p}-kal megemelték. Mennyi lett az új fizetése?`,
+         A: f => `Anya fizetését ${f.p}-kal megemelték, így most havonta ${f.N} Ft-ot keres. Mennyi volt a fizetése az emelés előtt?`,
+         P: f => `Anya havi fizetése ${f.O} Ft-ról ${f.N} Ft-ra emelkedett. Hány százalékos volt a béremelés?` },
+    say: { E: v => `Az új fizetése ${v} Ft.`, A: v => `Az emelés előtt ${v} Ft volt a fizetése.`, P: v => `A béremelés ${v}%-os volt.` } },
+  { id: 'varos', sign: 1, unit: 'fő', int: true, a: [2000, 30000, 10], pr: [2, 25], rA: 'a tíz évvel ezelőtti lakosság', rN: 'a mostani lakosság', rD: 'a növekedés',
+    t: { E: f => `Egy kisvárosnak tíz éve ${f.O} lakosa volt. Azóta a lakosság ${f.p}-kal nőtt. Hány lakosa van most?`,
+         A: f => `Egy kisváros lakossága tíz év alatt ${f.p}-kal nőtt, most ${f.N} lakosa van. Hány lakosa volt tíz éve?`,
+         P: f => `Egy kisváros lakossága tíz év alatt ${f.O} főről ${f.N} főre nőtt. Hány százalékkal nőtt a lakosság?` },
+    say: { E: v => `Most ${v} lakosa van.`, A: v => `Tíz éve ${v} lakosa volt.`, P: v => `A lakosság ${v}%-kal nőtt.` } },
+  { id: 'auto', sign: -1, unit: 'Ft', int: true, a: [1000000, 8000000, 10000], pr: [5, 30], rA: 'az autó egy évvel ezelőtti értéke', rN: 'az autó mostani értéke', rD: 'az értékcsökkenés',
+    t: { E: f => `Egy ${f.O} Ft-os autó értéke egy év alatt ${f.p}-kal csökkent. Mennyit ér most az autó?`,
+         A: f => `Egy autó értéke egy év alatt ${f.p}-kal csökkent, most ${f.N} Ft-ot ér. Mennyit ért egy évvel ezelőtt?`,
+         P: f => `Egy autó értéke egy év alatt ${f.O} Ft-ról ${f.N} Ft-ra csökkent. Hány százalékkal csökkent az értéke?` },
+    say: { E: v => `Az autó most ${v} Ft-ot ér.`, A: v => `Egy évvel ezelőtt ${v} Ft-ot ért.`, P: v => `Az értéke ${v}%-kal csökkent.` } },
+  { id: 'szilva', sign: -1, unit: 'kg', int: false, a: [2, 20, 0.5], pr: [60, 80], rA: 'a friss szilva tömege', rN: 'az aszalt szilva tömege', rD: 'a tömegcsökkenés',
+    t: { E: f => `Aszaláskor a szilva tömege ${f.p}-kal csökken. Hány kilogramm aszalt szilva lesz ${f.O} kg friss szilvából?`,
+         A: f => `Aszaláskor a szilva tömege ${f.p}-kal csökken. Hány kilogramm friss szilvából lesz ${f.N} kg aszalt szilva?`,
+         P: f => `Aszaláskor ${f.O} kg friss szilvából ${f.N} kg aszalt szilva lett. Hány százalékkal csökkent a szilva tömege?` },
+    say: { E: v => `${v} kg aszalt szilva lesz.`, A: v => `${v} kg friss szilvából lesz ennyi aszalt szilva.`, P: v => `A tömege ${v}%-kal csökkent.` } }
+];
+
+const EASY = [5, 10, 20, 25, 30, 40, 50, 60, 75, 80, 90];
+function pickP(L, sc) {
+  if (sc.ps) return D(pick(sc.ps));
+  const [lo, hi] = sc.pr || [1, 99];
+  if (L === 1) { const c = EASY.filter(x => x >= lo && x <= hi); return D(c.length ? pick(c) : r(lo, hi)); }
+  if (L === 3 && Math.random() < 0.35) return D(r(lo, hi - 1) * 10 + 5, 1);     // pl. 12,5%
+  return D(r(lo, hi));
+}
+function amount(sc) {
+  const [lo, hi, st] = sc.a;
+  return dmul(D(r(Math.ceil(lo / st), Math.floor(hi / st))), dparse(String(st)));
+}
+const maxDec = (sc, L) => sc.int ? 0 : L === 1 ? 1 : 2;
+
+function genBasic(sc, L, unk) {
+  for (let i = 0; i < 3000; i++) {
+    const P = pickP(L, sc), A = amount(sc), E = pct(A, P);
+    if (E.n <= 0n || E.s > maxDec(sc, L)) continue;
+    return { sc, unk, change: 0, A, E, P };
+  }
+  return null;
+}
+function genChange(sc, L, unk) {
+  for (let i = 0; i < 3000; i++) {
+    const pc = pickP(L, sc), O = amount(sc), Dd = pct(O, pc);
+    if (sc.sign < 0 && deq(pc, D(50))) continue;            // 50%-os csökkenésnél a változás = az új érték
+    if (Dd.n <= 0n || Dd.s > maxDec(sc, L)) continue;
+    const N = sc.sign > 0 ? dadd(O, Dd) : dsub(O, Dd);
+    if (N.n <= 0n) continue;
+    const P = sc.sign > 0 ? dadd(H, pc) : dsub(H, pc);
+    const base = { sc, unk, change: sc.sign, pc, O, N, Dd };
+    return unk === 'P' ? Object.assign(base, { A: O, E: Dd, P: pc }) : Object.assign(base, { A: O, E: N, P });
+  }
+  return null;
+}
+
+const SYM = { A: 'A', E: 'É', P: 'p' };
+const NAMES = { A: 'százalékalap', E: 'százalékérték', P: 'százalékláb' };
+const ACC = { A: 'százalékalapot', E: 'százalékértéket', P: 'százaléklábat' };
+const ORDER = ['A', 'E', 'P'];
+const B = x => '<b>' + dstr(x, true) + '</b>';
+const Bp = x => '<b>' + dstr(x) + '%</b>';
+const num = x => dstr(x, true);
+const U = t => ' ' + t.sc.unit;
+
+function story(t) {
+  const f = t.change ? { O: B(t.O), N: B(t.N), p: Bp(t.pc) } : { A: B(t.A), E: B(t.E), p: Bp(t.P) };
+  return t.sc.t[t.unk](f);
+}
+/* az egyes szerepek jelentése a szövegben */
+function roles(t) {
+  if (!t.change) return { A: t.sc.rA, E: t.sc.rE, P: 'hány százaléka az érték az alapnak' };
+  return {
+    A: t.sc.rA,
+    E: t.unk === 'P' ? t.sc.rD : t.sc.rN,
+    P: t.unk === 'P' ? 'a változás százaléka' : t.sc.rN + ' hány százaléka az eredetinek'
+  };
+}
+const answerOf = t => t[t.unk];
+const sayAnswer = t => t.sc.say[t.unk](num(answerOf(t)));
+
+const TOPICS = [
+  { id: 'E', name: 'Százalékérték', kind: 'A százalékérték kiszámítása', ex: 'Mennyi 2 400 Ft 25%-a?' },
+  { id: 'A', name: 'Százalékalap', kind: 'A százalékalap kiszámítása', ex: 'Minek a 25%-a 600 Ft?' },
+  { id: 'P', name: 'Százalékláb', kind: 'A százalékláb kiszámítása', ex: '600 Ft hány %-a 2 400 Ft-nak?' },
+  { id: 'mixed', name: 'Véletlen feladat', kind: 'Véletlen feladat', ex: 'bármelyik a háromból', rand: true }
+];
+const LEVELS = [{ id: 1, name: 'Könnyű' }, { id: 2, name: 'Közepes' }, { id: 3, name: 'Nehéz' }];
+
+function makeTask(topicId, level, prevKey) {
+  let q = null, g = 0;
+  do {
+    const unk = topicId === 'mixed' ? pick(ORDER) : topicId;
+    const useCh = level === 3 && Math.random() < 0.5;
+    q = (useCh ? genChange : genBasic)(pick(useCh ? CH : SC), level, unk);
+    if (q) { q.topic = topicId; q.key = story(q); }
+  } while ((!q || q.key === prevKey) && ++g < 60);
+  return q;
+}
+
+/* ===== Lépések =====
+   W.stage: 'goal' (mit keresünk), 'data' (ismert adatok), 'one' (1%), 'fin' (eredmény), 'done' */
+function dataEq(t) {
+  const parts = [];
+  for (const k of ORDER) {
+    if (k === t.unk) continue;
+    if (k === 'A') parts.push('A = ' + num(t.A) + U(t));
+    if (k === 'E') parts.push(t.change && t.unk === 'P'
+      ? 'É = ' + (t.change < 0 ? num(t.O) + ' − ' + num(t.N) : num(t.N) + ' − ' + num(t.O)) + ' = ' + num(t.E) + U(t)
+      : 'É = ' + num(t.E) + U(t));
+    if (k === 'P') parts.push(t.change ? 'p = 100% ' + (t.change < 0 ? '−' : '+') + ' ' + dstr(t.pc) + '% = ' + dstr(t.P) + '%' : 'p = ' + dstr(t.P) + '%');
+  }
+  return parts.join(',&ensp;');
+}
+function start(t, askGoal) {
+  const W = { t, rows: [], stage: 'goal' };
+  if (!askGoal) commit(W);
+  return W;
+}
+function expected(W) {
+  const t = W.t;
+  if (W.stage === 'goal') return { unk: t.unk };
+  if (W.stage === 'data') return { A: t.A, E: t.E, P: t.P };
+  if (W.stage === 'one') return { X: hund(t.A) };          // = É : p is, ha az alapot keressük
+  if (W.stage === 'fin') return { X: answerOf(t) };
+  return null;
+}
+function commit(W) {
+  const t = W.t, one = hund(t.A);
+  if (W.stage === 'goal') {
+    W.rows.push({ eq: SYM[t.unk] + ' = ?', note: 'keresett: ' + NAMES[t.unk] + ' (' + roles(t)[t.unk] + ')' });
+    W.stage = 'data';
+  } else if (W.stage === 'data') {
+    W.rows.push({ eq: dataEq(t), note: 'ismert adatok' });
+    W.stage = 'one';
+  } else if (W.stage === 'one') {
+    W.rows.push(t.unk === 'A'
+      ? { eq: '1% = ' + num(t.E) + ' : ' + dstr(t.P) + ' = ' + num(one) + U(t), note: 'p% = É, ezért 1% = É : p' }
+      : { eq: '1% = ' + num(t.A) + ' : 100 = ' + num(one) + U(t), note: 'az alap 1%-a: A : 100' });
+    W.stage = 'fin';
+  } else if (W.stage === 'fin') {
+    const row = t.unk === 'E' ? { eq: dstr(t.P) + '% = ' + num(one) + ' · ' + dstr(t.P) + ' = ' + num(t.E) + U(t), note: 'p% = 1% · p' }
+      : t.unk === 'A' ? { eq: '100% = ' + num(one) + ' · 100 = ' + num(t.A) + U(t), note: 'az alap a 100%' }
+      : { eq: 'p = ' + num(t.E) + ' : ' + num(one) + ' = ' + dstr(t.P) + '%', note: 'hányszor van meg az 1% az értékben?' };
+    row.fin = true;
+    W.rows.push(row);
+    W.stage = 'done';
+  }
+  return W;
+}
+function derive(t) {
+  const W = start(t, true); let g = 0;
+  while (W.stage !== 'done' && g++ < 10) commit(W);
+  return W;
+}
+/* gyakori hibák a végeredménynél */
+function quickMistake(t, v) {
+  const c = [];
+  if (t.unk === 'A') {
+    if (t.change) c.push([ddiv(times100(t.E), t.pc), 'A megadott érték nem a ' + dstr(t.pc) + '%-nak felel meg, hanem a 100% ' + (t.change < 0 ? '−' : '+') + ' ' + dstr(t.pc) + '% = ' + dstr(t.P) + '%-nak.']);
+    c.push([pct(t.E, t.change ? t.pc : t.P), 'Úgy számoltál, mintha a megadott érték lenne az alap. Itt az alapot keressük: azt az egészet, aminek ez a része.']);
+  } else if (t.unk === 'E') {
+    if (t.change) c.push([pct(t.A, t.pc), 'Ez csak a változás mértéke. A kérdés az új érték: ezt még ' + (t.change < 0 ? 'le kell vonni az eredetiből' : 'hozzá kell adni az eredetihez') + '.']);
+    else c.push([ddiv(times100(t.A), t.P), 'Nem osztani kell a százaléklábbal: előbb számold ki az alap 1%-át, aztán szorozd meg p-vel.']);
+  } else {
+    if (t.change) {
+      c.push([ddiv(times100(t.N), t.O), 'Ennyi százaléka az új érték az eredetinek. A változás ennek a 100%-tól való eltérése.']);
+      c.push([ddiv(times100(t.Dd), t.N), 'Az új értékhez viszonyítottál. A változást mindig az eredeti értékhez (az alaphoz) viszonyítjuk.']);
+    } else c.push([ddiv(times100(t.A), t.E), 'Fordítva osztottál: az értéket osztjuk az alappal, nem az alapot az értékkel.']);
+  }
+  const hit = c.find(([x]) => x && deq(x, v));
+  return hit ? hit[1] : null;
+}
+// ENGINE END
+
+/* ===== Felület ===== */
+const KEY = 'szazalekgyakorlo.v1';
+const $ = id => document.getElementById(id);
+const MODES = [{ id: 'step', name: 'Lépésenként' }, { id: 'quick', name: 'Csak eredmény' }];
+let state = { topic: 'E', level: 1, mode: 'step', streak: 0, stats: {} };
+let cur = null, prevKey = '';
+let W = null, ui = null;
+let lastInput = null;
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (s && typeof s === 'object') {
+      state.topic = TOPICS.some(t => t.id === s.topic) ? s.topic : 'E';
+      state.level = [1, 2, 3].includes(s.level) ? s.level : 1;
+      state.mode = s.mode === 'quick' ? 'quick' : 'step';
+      state.streak = Number.isFinite(s.streak) ? s.streak : 0;
+      state.stats = s.stats && typeof s.stats === 'object' ? s.stats : {};
+    }
+  } catch (e) { /* nincs mentett adat */ }
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* nem baj */ } }
+const stat = id => state.stats[id] || { ok: 0, done: 0 };
+
+function renderTopics() {
+  $('topics').innerHTML = TOPICS.map(t => {
+    const s = stat(t.id);
+    return '<button type="button" class="topic' + (t.rand ? ' rand' : '') + '" data-id="' + t.id + '" aria-pressed="' + (t.id === state.topic) + '">' +
+      '<span class="nm">' + (t.rand ? '🎲 ' : '') + t.name + '</span><span class="sc">' + s.ok + ' / ' + s.done + '</span>' +
+      '<span class="fm">' + t.ex + '</span></button>';
+  }).join('');
+}
+function renderSeg(boxId, items, curId) {
+  const box = $(boxId);
+  box.querySelectorAll('.lv').forEach(n => n.remove());
+  items.forEach(l => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'lv'; b.dataset.id = l.id; b.textContent = l.name;
+    b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(l.id === curId));
+    box.appendChild(b);
+  });
+}
+function renderOpts() { renderSeg('levels', LEVELS, state.level); renderSeg('modes', MODES, state.mode); }
+function renderTally() {
+  let ok = 0, done = 0;
+  Object.values(state.stats).forEach(s => { ok += s.ok; done += s.done; });
+  $('tStreak').textContent = state.streak;
+  $('tTotal').textContent = ok + ' / ' + done;
+}
+const RULES = {
+  E: { title: 'A százalékérték kiszámítása', big: '<i>É</i> = <i>A</i> · <i>p</i> : 100',
+    text: 'Először kiszámoljuk az alap 1%-át (A : 100), aztán ezt megszorozzuk a százaléklábbal. Változásnál az új érték az eredeti 100% + p%-a, illetve 100% − p%-a.' },
+  A: { title: 'A százalékalap kiszámítása', big: '<i>A</i> = <i>É</i> : <i>p</i> · 100',
+    text: 'Az érték a p%-nak felel meg, ezért 1% = É : p. Az alap ennek százszorosa, hiszen az alap a 100%. Változásnál figyelj: az új érték az eredeti 100% + p%-a, illetve 100% − p%-a.' },
+  P: { title: 'A százalékláb kiszámítása', big: '<i>p</i> = <i>É</i> : <i>A</i> · 100',
+    text: 'Kiszámoljuk az alap 1%-át (A : 100), aztán megnézzük, hányszor van meg ez az értékben. Változásnál az érték maga a változás (a különbség), az alap pedig az eredeti érték.' }
+};
+function renderRule() {
+  const R = RULES[cur.unk];
+  const locked = state.topic === 'mixed' && !ui.hintShown && !ui.finished && !ui.goalDone;
+  $('rule').classList.toggle('locked', locked);
+  $('ruleTitle').textContent = locked ? 'Melyik mennyiséget keressük?' : R.title;
+  $('ruleBig').innerHTML = R.big;
+  $('ruleText').textContent = locked ? 'Gondold végig, mi az egész, mi a rész, és mit nem tudunk még. Ha elakadsz, kérj segítséget.' : R.text;
+}
+function setFb(cls, msg) { $('fb').className = 'fb ' + cls; $('fb').innerHTML = msg; }
+function record(credit) {
+  ui.finished = true;
+  const s = stat(state.topic);
+  state.stats[state.topic] = { ok: s.ok + (credit ? 1 : 0), done: s.done + 1 };
+  state.streak = credit ? state.streak + 1 : 0;
+  save(); renderTopics(); renderTally(); renderRule();
+}
+function showAnswer() { $('answer').innerHTML = '<b>Válasz:</b> ' + sayAnswer(cur); $('answer').hidden = false; }
+const ansText = () => answerOf(cur) && (num(answerOf(cur)) + (cur.unk === 'P' ? '%' : U(cur)));
+
+/* ---------- Új feladat ---------- */
+function newTask() {
+  cur = makeTask(state.topic, state.level, prevKey);
+  prevKey = cur.key;
+  ui = { finished: false, hintShown: false, goalDone: state.topic !== 'mixed', errors: 0, attempts: 0, ok: {} };
+  $('qKind').textContent = TOPICS.find(x => x.id === state.topic).kind + (cur.change ? ' · változás' : '');
+  $('story').innerHTML = cur.key.replace(/(<b>[^<]*<\/b>-[a-záéíóöőúüű]+)/g, '<span class="nw">$1</span>');
+  const step = state.mode === 'step';
+  $('step').hidden = !step; $('quick').hidden = step; $('bCheckQ').hidden = step;
+  $('bHint').hidden = false; $('bReveal').hidden = true; $('bNext').hidden = true; $('sol').hidden = true; $('answer').hidden = true;
+  $('helpKeys').hidden = false;
+  setFb('', '');
+  renderRule();
+  if (step) { W = start(cur, state.topic === 'mixed'); renderStep(); }
+  else {
+    const mixed = state.topic === 'mixed';
+    $('qLbl').textContent = mixed ? 'Számold ki a kérdezett mennyiséget!' : 'Számold ki a ' + ACC[cur.unk] + '!';
+    $('qSym').textContent = mixed ? '?' : SYM[cur.unk];
+    $('qUnit').textContent = cur.unk === 'P' ? '%' : cur.sc.unit;
+    $('qX').value = ''; $('qX').className = 'slot'; $('qX').readOnly = false;
+    $('qX').focus({ preventScroll: true });
+  }
+}
+
+/* ---------- Lépésenkénti mód ---------- */
+function renderRows(box, rows, finished) {
+  const n = rows.length;
+  box.innerHTML = rows.map((row, i) => {
+    const c = (row.auto ? ' auto' : '') + (row.fin ? ' fin' : '') + (i === n - 1 && !finished ? ' cur' : '');
+    return '<div class="eq' + c + '">' + row.eq + '</div><div class="nt' + (row.auto ? ' auto' : '') + '">' + (row.note || '') + '</div>';
+  }).join('');
+}
+const inp = (id, label) => '<input class="slot" id="' + id + '" type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="' + label + '">';
+const unitSpan = u => '<span class="unit">' + u + '</span>';
+const checkBtn = '<div class="keys"><button class="btn primary sm" id="bStep" type="button">Ellenőrzés</button></div>';
+const FIELDS = ['fA', 'fE', 'fP', 'fX'];
+function renderStep() {
+  renderRows($('rows'), W.rows, ui.finished);
+  const P = $('panel'), t = cur, u = t.sc.unit;
+  P.hidden = ui.finished;
+  if (ui.finished) return;
+  let h = '';
+  if (W.stage === 'goal') {
+    h = '<span class="lbl">Melyik mennyiséget kell kiszámolni?</span>' +
+      '<div class="keys">' + ORDER.map(k => '<button type="button" class="key txt" data-goal="' + k + '">' + NAMES[k] + '<i>' + SYM[k] + '</i></button>').join('') + '</div>' +
+      '<p class="tip">Az alap az egész (100%), az érték ennek egy része, a láb megmondja, hány százalékról van szó.</p>';
+  } else if (W.stage === 'data') {
+    h = '<span class="lbl">Írd ki a szövegből az ismert adatokat!' + (t.change ? ' Figyelj: ebben a feladatban valami megváltozik.' : '') + '</span>' +
+      ORDER.map(k => '<div class="mline">' + (k === t.unk
+        ? '<span class="unk">' + SYM[k] + ' = ?</span>'
+        : SYM[k] + ' = ' + inp('f' + k, NAMES[k]) + unitSpan(k === 'P' ? '%' : u)) + '</div>').join('') + checkBtn;
+  } else if (W.stage === 'one') {
+    h = '<span class="lbl">' + (t.unk === 'A' ? 'Az érték a ' + dstr(t.P) + '%-nak felel meg. Mennyi 1%?' : 'Mennyi az alap 1%-a?') + '</span>' +
+      '<div class="mline">1% = ' + inp('fX', '1%') + unitSpan(u) + '</div>' + checkBtn;
+  } else if (W.stage === 'fin') {
+    const lbl = t.unk === 'E' ? 'Mennyi ' + dstr(t.P) + '%?' : t.unk === 'A' ? 'Mennyi 100%, vagyis az alap?' : 'Hányszor van meg az 1% az értékben? Ennyi a százalékláb.';
+    const lhs = t.unk === 'E' ? dstr(t.P) + '%' : t.unk === 'A' ? '100%' : 'p';
+    h = '<span class="lbl">' + lbl + '</span><div class="mline">' + lhs + ' = ' + inp('fX', 'eredmény') + unitSpan(t.unk === 'P' ? '%' : u) + '</div>' + checkBtn;
+  }
+  P.innerHTML = h;
+  FIELDS.forEach(id => {
+    const el = $(id); if (!el) return;
+    el.addEventListener('focus', () => { lastInput = el; });
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkStep(); } });
+    el.addEventListener('input', () => el.classList.remove('bad'));
+    if (ui.ok[id]) { el.value = ui.ok[id]; el.classList.add('ok'); el.readOnly = true; }
+  });
+  const first = FIELDS.map($).find(el => el && !el.readOnly);
+  if (first) { lastInput = first; first.focus({ preventScroll: true }); }
+}
+function advanceStage() {
+  commit(W);
+  ui.ok = {};
+  if (W.stage === 'done') { finishStep(false); return; }
+  renderStep();
+}
+function wrong(msg) {
+  ui.errors++; ui.hintShown = true; renderRule();
+  setFb('bad', msg);
+  if (ui.errors >= 2) $('bReveal').hidden = false;
+}
+function readField(id) {
+  const el = $(id); if (!el || el.readOnly) return { skip: true };
+  if (el.value.trim() === '') return { empty: true, el };
+  const v = dparse(el.value);
+  return v === null ? { badFmt: true, el } : { v, el };
+}
+function markOk(id) { const el = $(id); ui.ok[id] = el.value; el.classList.remove('bad'); el.classList.add('ok'); el.readOnly = true; }
+function markBad(id) { const el = $(id); el.classList.add('bad'); el.focus(); el.select(); }
+
+function dataMistake(t, k, v) {
+  const R = roles(t), sg = t.change < 0 ? '−' : '+';
+  if (k === 'A' && deq(v, t.E)) return 'Felcserélted az alapot és az értéket. Az alap az egész (100%): ' + R.A + '.';
+  if (k === 'E' && deq(v, t.A)) return 'Ez az alap, nem az érték. Az érték az alapnak egy része: ' + R.E + '.';
+  if (t.change && k === 'A' && deq(v, t.N)) return 'Ez a megváltozott érték. Az alap mindig az eredeti, változás előtti érték, ehhez viszonyítunk.';
+  if (t.change && k === 'E' && t.unk === 'P' && (deq(v, t.N) || deq(v, t.O))) return 'Most a változás százalékát keressük, ezért az érték maga a változás: mennyivel lett ' + (t.change < 0 ? 'kevesebb' : 'több') + '? Vond ki egymásból a két számot.';
+  if (t.change && k === 'P' && deq(v, t.pc)) return 'A ' + dstr(t.pc) + '% a változás. ' + R.E.charAt(0).toUpperCase() + R.E.slice(1) + ' az eredetinek 100% ' + sg + ' ' + dstr(t.pc) + '%-a.';
+  if (t.change && k === 'P' && deq(v, t.change < 0 ? dadd(H, t.pc) : dsub(H, t.pc))) return 'Figyelj az irányra: az érték ' + (t.change < 0 ? 'csökkent' : 'nőtt') + ', tehát 100% ' + sg + ' ' + dstr(t.pc) + '%.';
+  return SYM[k] + ' nem ennyi. Keresd meg a szövegben: ' + R[k] + '.';
+}
+function checkStep() {
+  if (ui.finished) return;
+  const t = cur, x = expected(W);
+  const keys = W.stage === 'data' ? ORDER.filter(k => k !== t.unk).map(k => ['f' + k, k]) : [['fX', 'X']];
+  const fs = keys.map(([id, k]) => [id, k, readField(id)]);
+  for (const [, , f] of fs) {
+    if (f.empty) { setFb('info', 'Töltsd ki az üres mezőt.'); f.el.focus(); return; }
+    if (f.badFmt) { setFb('info', 'Számot írj be, például 240 vagy 12,5.'); f.el.focus(); return; }
+  }
+  const msgs = [];
+  for (const [id, k, f] of fs) {
+    if (f.skip) continue;
+    if (deq(f.v, x[k])) { markOk(id); continue; }
+    markBad(id);
+    if (W.stage === 'data') msgs.push(dataMistake(t, k, f.v));
+    else if (W.stage === 'one') msgs.push(t.unk === 'A'
+      ? (deq(f.v, hund(t.E)) ? 'Az érték nem a 100%, hanem a ' + dstr(t.P) + '%. Ezért nem 100-zal, hanem p-vel kell osztani: 1% = ' + num(t.E) + ' : ' + dstr(t.P) + '.' : 'Az 1% nem ennyi: ha ' + dstr(t.P) + '% = ' + num(t.E) + U(t) + ', akkor 1% = ' + num(t.E) + ' : ' + dstr(t.P) + '.')
+      : 'Az 1% nem ennyi: az alapot kell 100 egyenlő részre osztani.');
+    else msgs.push(t.unk === 'E' ? 'Nem jó. Az 1%-ot szorozd meg a százaléklábbal: ' + num(hund(t.A)) + ' · ' + dstr(t.P) + '.'
+      : t.unk === 'A' ? 'Nem jó. Az alap a 100%, ezért az 1%-ot 100-zal kell szorozni.'
+      : 'Nem jó. Oszd el az értéket az 1%-kal.');
+  }
+  if (msgs.length) { wrong(msgs.join(' ')); return; }
+  setFb('', '');
+  advanceStage();
+}
+function chooseGoal(k) {
+  if (k === cur.unk) { ui.goalDone = true; setFb('', ''); renderRule(); advanceStage(); return; }
+  const R = roles(cur);
+  wrong('Nem ezt keressük: a ' + NAMES[k] + ' ismert a szövegből (' + R[k] + '). Melyik adat hiányzik?');
+}
+function finishStep(revealed) {
+  record(!revealed && ui.errors === 0);
+  renderRows($('rows'), W.rows, true);
+  $('panel').hidden = true; $('helpKeys').hidden = true;
+  $('bHint').hidden = true; $('bReveal').hidden = true; $('bNext').hidden = false;
+  if (revealed) setFb('info', 'A hátralévő lépéseket a program mutatta meg. Ez a feladat nem számít hibátlannak.');
+  else setFb('ok', ui.errors === 0 ? 'Kész, hibátlanul!' : 'Kész!');
+  showAnswer();
+  $('bNext').focus({ preventScroll: true });
+}
+function revealStep() {
+  if (ui.finished) return;
+  const from = W.rows.length;
+  let g = 0;
+  while (W.stage !== 'done' && g++ < 10) commit(W);
+  W.rows.forEach((row, i) => { if (i >= from) row.auto = true; });
+  finishStep(true);
+}
+function hintStep() {
+  ui.hintShown = true; renderRule();
+  const t = cur, R = roles(t), one = num(hund(t.A));
+  let m = '';
+  if (W.stage === 'goal') m = 'Nézd meg, mit kérdez a feladat! Ha az egészet, az a százalékalap; ha a részt, az a százalékérték; ha azt, hogy hány százalék, az a százalékláb.';
+  else if (W.stage === 'data') {
+    m = ORDER.filter(k => k !== t.unk).map(k => '<b>' + SYM[k] + '</b>: ' + R[k]).join('; ') + '.';
+    if (t.change && t.unk !== 'P') m += ' ' + R.E.charAt(0).toUpperCase() + R.E.slice(1) + ' az eredetinek 100% ' + (t.change < 0 ? '−' : '+') + ' ' + dstr(t.pc) + '%-a.';
+    if (t.change && t.unk === 'P') m += ' Az érték a két szám különbsége.';
+  } else if (W.stage === 'one') m = t.unk === 'A'
+    ? 'Ha ' + dstr(t.P) + '% = ' + num(t.E) + U(t) + ', akkor 1% = <span class="m">' + num(t.E) + ' : ' + dstr(t.P) + '</span>.'
+    : 'Az alap a 100%. Az 1%-a: <span class="m">' + num(t.A) + ' : 100</span>.';
+  else if (W.stage === 'fin') m = t.unk === 'E' ? 'Ha 1% = ' + one + U(t) + ', akkor ' + dstr(t.P) + '% = <span class="m">' + one + ' · ' + dstr(t.P) + '</span>.'
+    : t.unk === 'A' ? 'Ha 1% = ' + one + U(t) + ', akkor 100% = <span class="m">' + one + ' · 100</span>.'
+    : 'Az 1% = ' + one + U(t) + '. Számold ki: <span class="m">' + num(t.E) + ' : ' + one + '</span>.';
+  setFb('info', m);
+}
+
+/* ---------- Csak eredmény mód ---------- */
+function checkQuick() {
+  if (ui.finished) return;
+  const raw = $('qX').value;
+  if (raw.trim() === '') { setFb('info', 'Írd be az eredményt.'); return; }
+  const v = dparse(raw);
+  if (!v) { setFb('info', 'Számot írj be, például 240 vagy 12,5.'); return; }
+  ui.attempts++;
+  if (deq(v, answerOf(cur))) {
+    $('qX').className = 'slot ok'; $('qX').readOnly = true;
+    setFb('ok', ui.attempts === 1 ? 'Helyes, elsőre!' : 'Helyes.');
+    finishQuick(ui.attempts === 1);
+    return;
+  }
+  ui.hintShown = true; ui.goalDone = true; renderRule();
+  $('qX').className = 'slot bad';
+  setFb('bad', quickMistake(cur, v) || 'Ez még nem jó. Gondold végig: mi az alap, mi az érték, és mennyi az 1%?');
+  if (ui.attempts >= 2) $('bReveal').hidden = false;
+  $('qX').focus(); $('qX').select();
+}
+function finishQuick(credit) {
+  record(credit);
+  $('bCheckQ').hidden = true; $('bHint').hidden = true; $('bReveal').hidden = true; $('bNext').hidden = false; $('helpKeys').hidden = true;
+  renderRows($('solRows'), derive(cur).rows, true);
+  $('sol').hidden = false;
+  showAnswer();
+  $('bNext').focus({ preventScroll: true });
+}
+
+/* ---------- Események ---------- */
+$('panel').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || ui.finished) return;
+  if (b.id === 'bStep') { checkStep(); return; }
+  if (b.dataset.goal) chooseGoal(b.dataset.goal);
+});
+$('helpKeys').addEventListener('pointerdown', e => { if (e.target.closest('.key')) e.preventDefault(); });
+$('helpKeys').addEventListener('click', e => {
+  const b = e.target.closest('.key'); if (!b) return;
+  const el = lastInput && document.body.contains(lastInput) && !lastInput.readOnly ? lastInput
+    : (state.mode === 'quick' ? $('qX') : document.querySelector('#panel .slot:not([readonly])'));
+  if (!el) return;
+  try { el.setRangeText(b.dataset.k, el.selectionStart ?? el.value.length, el.selectionEnd ?? el.value.length, 'end'); }
+  catch (err) { el.value += b.dataset.k; }
+  el.focus();
+});
+$('qX').addEventListener('focus', () => { lastInput = $('qX'); });
+$('qX').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkQuick(); } });
+$('topics').addEventListener('click', e => {
+  const b = e.target.closest('.topic'); if (!b) return;
+  state.topic = b.dataset.id; save(); renderTopics(); newTask();
+});
+$('levels').addEventListener('click', e => {
+  const b = e.target.closest('.lv'); if (!b) return;
+  state.level = Number(b.dataset.id); save(); renderOpts(); newTask();
+});
+$('modes').addEventListener('click', e => {
+  const b = e.target.closest('.lv'); if (!b) return;
+  state.mode = b.dataset.id; save(); renderOpts(); newTask();
+});
+$('bCheckQ').addEventListener('click', checkQuick);
+$('bHint').addEventListener('click', () => {
+  if (state.mode === 'step') { hintStep(); return; }
+  ui.hintShown = true; ui.goalDone = true; renderRule();
+  const t = cur;
+  setFb('info', 'A keresett mennyiség a <b>' + NAMES[t.unk] + '</b>. ' + (t.change
+    ? (t.unk === 'P' ? 'Az érték most a változás (a két szám különbsége), az alap az eredeti érték.' : roles(t).E.charAt(0).toUpperCase() + roles(t).E.slice(1) + ' az eredetinek 100% ' + (t.change < 0 ? '−' : '+') + ' ' + dstr(t.pc) + '%-a.')
+    : 'Először számold ki, mennyi 1%.'));
+});
+$('bReveal').addEventListener('click', () => {
+  if (state.mode === 'step') { revealStep(); return; }
+  $('qX').value = num(answerOf(cur)); $('qX').className = 'slot shown'; $('qX').readOnly = true;
+  setFb('info', 'A megoldás látható. Ez a feladat nem számít elsőre jónak.');
+  finishQuick(false);
+});
+$('bNext').addEventListener('click', newTask);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && ui && ui.finished && document.activeElement !== $('bNext')) { e.preventDefault(); newTask(); }
+});
+let resetArmed = false, resetTimer = null;
+$('bReset').addEventListener('click', () => {
+  const b = $('bReset');
+  if (!resetArmed) {
+    resetArmed = true; b.textContent = 'Biztosan törlöd? Kattints még egyszer.'; b.classList.add('warn');
+    resetTimer = setTimeout(() => { resetArmed = false; b.textContent = 'Eredmények törlése'; b.classList.remove('warn'); }, 4000);
+    return;
+  }
+  clearTimeout(resetTimer); resetArmed = false; b.textContent = 'Eredmények törlése'; b.classList.remove('warn');
+  state.stats = {}; state.streak = 0; save(); renderTopics(); renderTally();
+});
+
+load(); renderTopics(); renderOpts(); renderTally(); newTask();
+</script>
+</body></html>
